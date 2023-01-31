@@ -42,7 +42,7 @@
 			e.preventDefault();
 			e.stopPropagation();
 
-			fetch(`https:${currentWiki.server}${currentWiki.scriptpath}/api.php?${(new URLSearchParams({
+			fetch(`https://${currentWiki.server}${currentWiki.scriptpath}/api.php?${(new URLSearchParams({
 				action: 'query',
 				format: 'json',
 				list: 'usercontribs',
