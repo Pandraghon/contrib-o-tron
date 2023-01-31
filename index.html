@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Contrib-o-tron</title>
+</head>
+<body>
+	<form id="params">
+		<div class="input-group">
+			<label for="ucend">Début</label>
+			<input type="date" name="ucend" id="ucend"/>
+		</div>
+		<div class="input-group">
+			<label for="ucstart">Fin</label>
+			<input type="date" name="ucstart" id="ucstart"/>
+		</div>
+		<div class="input-group">
+			<label for="ucuser">Utilisateur</label>
+			<input type="text" name="ucuser" id="ucuser"/>
+		</div>
+
+		<div class="action-group">
+			<input type="submit"/>
+		</div>
+	</form>
+
+	<textarea name="result" id="result" cols="400" rows="20"></textarea>
+
+	<script>
+		const form = document.getElementById('params');
+		const resultEl = document.getElementById('result');
+		const startEl = document.getElementById('ucstart');
+		const endEl = document.getElementById('ucend');
+		const userEl = document.getElementById('ucuser');
+		const currentWiki = {
+			server: 'wiki-fr.guildwars2.com',
+			scriptpath: '',
+		};
+		form.addEventListener('submit', (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+
+			fetch(`https:${currentWiki.server}${currentWiki.scriptpath}/api.php?${(new URLSearchParams({
+				action: 'query',
+				format: 'json',
+				list: 'usercontribs',
+				ucuser: userEl.value,
+				uclimit: 500,
+				ucstart: startEl.valueAsDate.toISOString(),
+				ucend: endEl.valueAsDate.toISOString(),
+				origin: '*',
+			})).toString()}`)
+				.then(res => res.json())
+				.then(res => {
+					console.log(res);
+					if (!res.query) return result.textContent = `Error: ${JSON.stringify(res.error)}`;
+					const { query: { usercontribs } } = res;
+					/*
+					* new = création de la page
+					* top = page actuelle
+					* minor = modification mineure
+					*/
+					let contribs = usercontribs
+						.reduce((acc, obj) => {
+							const k = obj.pageid;
+							if (!acc[k]) {
+								acc[k] = {
+									title: obj.title,
+									comments: []
+								};
+							}
+							let { comment } = obj;
+							if ('new' in obj && (!comment || comment.startsWith('Page créée avec'))) {
+								comment = 'Création de la page';
+							}
+							if (comment) {
+								acc[k].comments.push(comment);
+							}
+							return acc;
+						}, {});
+					contribs = Object.values(contribs)
+						.sort((a, b) => a.title.replaceAll(/^Fichier:/g, '').localeCompare(b.title.replaceAll(/^Fichier:/g, '')))
+						.map(c => `** Article [[${c.title}]] : ${c.comments.join(' + ')}`);
+					result.textContent = contribs.join('\n');
+				});
+
+			return false;
+		})
+		
+	</script>
+	
+</body>
+</html>
